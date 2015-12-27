@@ -14,6 +14,7 @@ class DBAuth{
 	private $mail;
 	private $token;
 	private $active_account = true;
+	private $name_site;
 	
 	public function __construct(Database $db){
 		$this->db = $db;
@@ -35,6 +36,10 @@ class DBAuth{
 	public function setMail($value = null){
 		//si vous souhaitez definir le mail via vore bdd, faite appel à cette fonction
 		if(!is_null($value)) $this->mail = $value;
+	}
+	
+	public function setNameSite($value){
+		$this->name_site = $value;
 	}
 	
 	public function setActiveAccountOption($value = true){
@@ -204,10 +209,10 @@ class DBAuth{
 								include("../app/Views/mails/reset_password.php");
 								$body = ob_get_clean();
 								
-								$this->mail->setFrom($this->mail, 'MTFO Music');
+								$this->mail->setFrom($this->mail, $this->name_site);
 								$this->mail->addAddress($user_email);
 
-								$this->mail->Subject = 'MTFO Music - Rénitialisation de votre mot de passe';
+								$this->mail->Subject = $this->name_site . ' - Rénitialisation de votre mot de passe';
 								$this->mail->Body = $body;
 								
 								if(!$this->mail->send())
@@ -276,8 +281,8 @@ class DBAuth{
 		}
 		
 		if($error === true){
-			$this->mail->setFrom($this->mail, 'MTFO Music');
-			$this->mail->Subject = 'MTFO Music - Réinitialisation de votre clé de sécurité';
+			$this->mail->setFrom($this->mail, $this->name_site);
+			$this->mail->Subject = $this->name_site . ' - Réinitialisation de votre clé de sécurité';
 			$this->mail->addAddress($user->user_email); 
             $this->mail->Body = $body;
 			
