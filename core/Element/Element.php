@@ -20,9 +20,9 @@ class Element{
 	
 	public function query($statement, $attr = null, $one = false){
 		if($attr)
-			return $this->db->prepare($statement, $attr, str_replace('Element', 'Entity', get_class($this)), $one);
+			return $this->db->prepare($statement, $attr, strrev(preg_replace(strrev("/Element/"),strrev('Entity'),strrev(str_replace('Element\\', 'Element\Entity\\', get_class($this))),1)), $one);
 		else
-			return $this->db->query($statement, str_replace('Element', 'Entity', get_class($this)), $one);
+			return $this->db->query($statement, strrev(preg_replace(strrev("/Element/"),strrev('Entity'),strrev(str_replace('Element\\', 'Element\Entity\\', get_class($this))),1)), $one);
 	}
 	
 	//Pour le reste des query comme count par exemple, on utilise la méthode habituelle : $this->db->count
