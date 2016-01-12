@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Entity;
+namespace App\Element\Entity;
 
 use \Core\Entity\Entity;
 
