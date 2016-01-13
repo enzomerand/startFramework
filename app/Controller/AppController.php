@@ -18,12 +18,21 @@ class AppController extends Controller{
 		$this->app = App::getInstance();
 		$this->page = $_SERVER['REQUEST_URI'];
 		
-		$this->loadModel('User');
-		//indiquez les classes (elements) que vous utiliserez sur l'ensemble du site (pas l'admin par exemple)
+		$this->loadElement('User', true);
+		//indiquez les classes (elements) que vous utiliserez sur l'ensemble du site (pas l'admin par exemple), utilisable comme ceci (array) : $this->loadElement(['User', 'Data']); pour charger plusieurs classes
 	}
 	
-	protected function loadModel($model_name, $class_name = 'Element', $use_db = true){
-		$this->$model_name = $this->app->getElement($model_name, $class_name, $use_db);
+	final protected function loadElement($element_name, $entity = false, $class_name = 'Element', $use_db = true){
+		if(is_array($element_name)){
+			$array = $element_name;
+			foreach($array as $element)
+			    $this->setElement($element, $entity, $class_name, $use_db);
+	    }else
+		    $this->setElement($element_name, $entity, $class_name, $use_db);
+	}
+	
+	private function setElement($element_name, $entity = false, $class_name = 'Element', $use_db = true){
+		$this->$element_name = $this->app->getElement($element_name, $entity, $class_name, $use_db);
 	}
 	
 	public function set404(){
