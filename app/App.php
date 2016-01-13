@@ -54,7 +54,7 @@ class App{
 	}
 	
 	public function getDb(){
-		$config = Config::getInstance(ROOT . '/config/config.php');
+		$config = Config::getInstance(ROOT . '/app/config.php');
 		if(is_null($this->db_instance))
 			$this->db_instance = new Database($config->get('db_host'), $config->get('db_name'), $config->get('db_user'), $config->get('db_pass'));
 		
