@@ -9,23 +9,29 @@ class Element{
 	protected $element;
 	protected $db;
 	
-	public function __construct(Database $db){
+	private $entity;
+	
+	public function __construct($entity, Database $db){
 		$this->db = $db;
 		if(is_null($this->element)){
 			$parts = explode('\\', get_class($this));
 			$class_name = end($parts); //Récupère dernier élément du tableau
 			$this->element = strtolower(str_replace('Element', '', $class_name . 's')); //On met en minuscule et on enlève le Element à la fin
 		}
+		$this->entity = $entity;
 	}
 	
 	public function query($statement, $attr = null, $one = false){
+		$entity = ($this->entity === true) ? strrev(preg_replace(strrev("/Element/"),strrev('Entity'),strrev(str_replace('Element\\', 'Element\Entity\\', get_class($this))),1)) : null;
 		if($attr)
-			return $this->db->prepare($statement, $attr, strrev(preg_replace(strrev("/Element/"),strrev('Entity'),strrev(str_replace('Element\\', 'Element\Entity\\', get_class($this))),1)), $one);
+			return $this->db->prepare($statement, $attr, $entity, $one);
 		else
-			return $this->db->query($statement, strrev(preg_replace(strrev("/Element/"),strrev('Entity'),strrev(str_replace('Element\\', 'Element\Entity\\', get_class($this))),1)), $one);
+			return $this->db->query($statement, $entity, $one);
 	}
 	
-	//Pour le reste des query comme count par exemple, on utilise la méthode habituelle : $this->db->count
+	public function count($statement){
+		return $this->db->count($statement);
+	}
 	
 	public function all(){
 		return $this->query('SELECT * FROM ' . PREFIX . $this->element);
@@ -52,5 +58,12 @@ class Element{
 
 		return $string;
     }
+	
+	protected function findType($id, $other_type = 'permalink'){
+		if(ctype_digit($id))
+			return 'id';
+		else
+			return $other_type;
+	}
 	
 }
