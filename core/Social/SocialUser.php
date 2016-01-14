@@ -1,0 +1,1 @@
+<?phpnamespace Core\Social;class SocialUser extends Social{		private $config;	private $user_data;		protected $fb;		protected $tw;		protected $sc;		protected function setFacebook(){			}		protected function setTwitter(){			}		protected function setGPlus(){			}		protected function setSoundCloud(){			}}
