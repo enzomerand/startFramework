@@ -314,6 +314,15 @@ class DBAuth{
 			return $this->deserializeToken($_SESSION[$this->cookie_name])[0];
 	}
 	
+	public function setUserId(){
+		if(!empty($_COOKIE[$this->cookie_name])){
+			$cookie = $this->deserializeToken($_COOKIE[$this->cookie_name]);
+			
+			define('user_id', $cookie[0]);
+		}else
+			define('user_id', $this->deserializeToken($_SESSION[$this->cookie_name])[0]);
+	}
+	
 	private function createNewCookie($id = null){
 		if($id != null && ctype_digit($id)) {
 			$token = $this->encode($this->token);
