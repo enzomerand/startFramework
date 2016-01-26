@@ -73,4 +73,8 @@ class Database{
 		return $query->fetchColumn();
 	}
 	
+	public function lastInsertId(){
+        return $this->getPDO()->lastInsertId();
+    }
+	
 }
