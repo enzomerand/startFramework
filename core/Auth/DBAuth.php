@@ -15,6 +15,7 @@ class DBAuth{
 	private $token;
 	private $active_account = true;
 	private $name_site;
+	private $email;
 	
 	public function __construct(Database $db){
 		$this->db = $db;
@@ -28,14 +29,14 @@ class DBAuth{
 		$this->token = uniqid();
 		
 		if(defined(DOMAIN))
-			$this->mail = 'no-reply@' . DOMAIN;
+			$this->email = 'no-reply@' . DOMAIN;
 		else
-			$this->mail = 'no-reply@' . $_SERVER['HTTP_HOST'];
+			$this->email = 'no-reply@' . $_SERVER['HTTP_HOST'];
 	}
 	
 	public function setMail($value = null){
 		//si vous souhaitez definir le mail via vore bdd, faite appel à cette fonction
-		if(!is_null($value)) $this->mail = $value;
+		if(!is_null($value)) $this->email = $value;
 	}
 	
 	public function setNameSite($value){
@@ -145,7 +146,7 @@ class DBAuth{
 													include("../app/Views/mails/create_account_with_validation.php");
 													$body = ob_get_clean();
 													
-													$this->mail->setFrom($this->mail, $this->name_site);
+													$this->mail->setFrom($this->email, $this->name_site);
 													$this->mail->Subject = $this->name_site . ' - Validation de votre compte';
 													$this->mail->addAddress($user_email);
 												    $this->mail->Body = $body;
@@ -154,7 +155,7 @@ class DBAuth{
 													include("../app/Views/mails/create_account.php");
 													$body = ob_get_clean();
 													
-													$this->mail->setFrom($this->mail, $this->name_site);
+													$this->mail->setFrom($this->email, $this->name_site);
 													$this->mail->Subject = $this->name_site . ' - Validation de votre compte';
 													$this->mail->addAddress($user_email);
 												    $this->mail->Body = $body;
@@ -209,7 +210,7 @@ class DBAuth{
 								include("../app/Views/mails/reset_password.php");
 								$body = ob_get_clean();
 								
-								$this->mail->setFrom($this->mail, $this->name_site);
+								$this->mail->setFrom($this->email, $this->name_site);
 								$this->mail->addAddress($user_email);
 
 								$this->mail->Subject = $this->name_site . ' - Rénitialisation de votre mot de passe';
@@ -281,7 +282,7 @@ class DBAuth{
 		}
 		
 		if($error === true){
-			$this->mail->setFrom($this->mail, $this->name_site);
+			$this->mail->setFrom($this->email, $this->name_site);
 			$this->mail->Subject = $this->name_site . ' - Réinitialisation de votre clé de sécurité';
 			$this->mail->addAddress($user->user_email); 
             $this->mail->Body = $body;
