@@ -143,7 +143,7 @@ class DBAuth{
 													$key = $this->genUserKey();
 										            
 													ob_start();
-													include(ROOT . "/app/Views/mails/create_account_with_validation.php");
+													include(ROOT . "/app/Views/templates/mails/create_account_with_validation.php");
 													$body = ob_get_clean();
 													
 													$this->mail->setFrom($this->email, $this->name_site);
@@ -152,7 +152,7 @@ class DBAuth{
 												    $this->mail->Body = $body;
 												}else {
 													ob_start();
-													include(ROOT . "/app/Views/mails/create_account.php");
+													include(ROOT . "/app/Views/templates/mails/create_account.php");
 													$body = ob_get_clean();
 													
 													$this->mail->setFrom($this->email, $this->name_site);
@@ -207,7 +207,7 @@ class DBAuth{
 								$key = $this->genUserKey();
 						
 								ob_start();
-								include(ROOT . "/app/Views/mails/reset_password.php");
+								include(ROOT . "/app/Views/templates/mails/reset_password.php");
 								$body = ob_get_clean();
 								
 								$this->mail->setFrom($this->email, $this->name_site);
