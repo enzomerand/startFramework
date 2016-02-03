@@ -143,7 +143,7 @@ class DBAuth{
 													$key = $this->genUserKey();
 										            
 													ob_start();
-													include("../app/Views/mails/create_account_with_validation.php");
+													include(ROOT . "/app/Views/mails/create_account_with_validation.php");
 													$body = ob_get_clean();
 													
 													$this->mail->setFrom($this->email, $this->name_site);
@@ -152,7 +152,7 @@ class DBAuth{
 												    $this->mail->Body = $body;
 												}else {
 													ob_start();
-													include("../app/Views/mails/create_account.php");
+													include(ROOT . "/app/Views/mails/create_account.php");
 													$body = ob_get_clean();
 													
 													$this->mail->setFrom($this->email, $this->name_site);
@@ -207,7 +207,7 @@ class DBAuth{
 								$key = $this->genUserKey();
 						
 								ob_start();
-								include("../app/Views/mails/reset_password.php");
+								include(ROOT . "/app/Views/mails/reset_password.php");
 								$body = ob_get_clean();
 								
 								$this->mail->setFrom($this->email, $this->name_site);
@@ -339,7 +339,7 @@ class DBAuth{
 		unset($_COOKIE[$this->cookie_name]);
 		setcookie($this->cookie_name, null, -1, '/', DOMAIN);
 		
-		$this->db->execute('DELETE FROM ' . PREFIX . 'users_logged WHERE id = ?', [$id]);
+		$this->db->execute('DELETE FROM ' . PREFIX . 'users_logged WHERE id = ?', [user_id]);
 	}
 	
 	private function serializeToken($id, $token){
