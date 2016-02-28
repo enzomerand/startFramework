@@ -5,6 +5,7 @@ namespace Core\Auth;
 use Core\Database\Database;
 use \DateTime;
 use ReCaptcha\ReCaptcha;
+use Core\FindBrowser\FindBrowser;
 
 class DBAuth{
 	
@@ -16,10 +17,12 @@ class DBAuth{
 	private $active_account = true;
 	private $name_site;
 	private $email;
+	private $browser;
 	
 	public function __construct(Database $db){
 		$this->db = $db;
 		$this->reCaptcha = new ReCaptcha(CAPTCHA_PRIVATE);
+		$this->browser = new FindBrowser();
 		
 		$this->mail = new \PHPMailer;
 		$this->mail->setLanguage('fr', '../core/PHPMailer/language/');
@@ -27,6 +30,8 @@ class DBAuth{
 		$this->mail->isHTML(true);
 		
 		$this->token = uniqid();
+		
+		$this->deleteSessions();
 		
 		if(defined(DOMAIN))
 			$this->email = 'no-reply@' . DOMAIN;
@@ -47,6 +52,21 @@ class DBAuth{
 		if(is_bool($value))
 		    $this->active_account == $value;
 	}
+	
+	final private function getIP(){
+		$client  = @$_SERVER['HTTP_CLIENT_IP'];
+		$forward = @$_SERVER['HTTP_X_FORWARDED_FOR'];
+		$remote  = $_SERVER['REMOTE_ADDR'];
+
+		if(filter_var($client, FILTER_VALIDATE_IP))
+			$ip = $client;
+		elseif(filter_var($forward, FILTER_VALIDATE_IP))
+			$ip = $forward;
+		else
+			$ip = $remote;
+
+		return $ip;
+    }
 	
 	private function encode($value){
 		$salt = strtr(base64_encode(mcrypt_create_iv(16, MCRYPT_DEV_URANDOM)), '+', '.');
@@ -80,7 +100,7 @@ class DBAuth{
 	public function login($user_email, $user_password, $remember_me){
 		if($user_email != NULL && $user_password != NULL) {
 			$user = $this->db->prepare('SELECT user_id, user_password, user_account_activate FROM ' . PREFIX . 'users WHERE user_email = :user_email OR user_phone = :user_email', [':user_email' => $user_email], null, true);
-			if($user) {
+			if($user){
 				$continue = false;
 				if($this->active_account === true){
 					if($user->user_account_activate != 1)
@@ -89,11 +109,12 @@ class DBAuth{
 						$continue = true;
 				}
 				if($continue === true){
-					if($this->decode($user_password, $user->user_password) === true) {
-						session_regenerate_id();
-						$_SESSION[$this->cookie_name] = $this->serializeToken($user->user_id, $this->encode($this->token));
-						if($remember_me === true)
+					if($this->decode($user_password, $user->user_password) === true){
+						if($remember_me === true){
 							$this->createNewCookie($user->user_id);
+						    //$this->setUserId(true);
+					    }else
+							$this->createNewSession($user->user_id);
 						$error = true;
 					}else
 						$error = 'Identifiants incorrects';
@@ -107,12 +128,12 @@ class DBAuth{
 	}
 	
 	public function logout(){
-		$user_id = (isset($_COOKIE[$this->cookie_name]) && $_COOKIE[$this->cookie_name] != NULL) ? $_COOKIE[$this->cookie_name] : $user_id = $_SESSION[$this->cookie_name];
-		$_SESSION = array();
-		session_unset();
-		session_destroy();
 		if(isset($_COOKIE[$this->cookie_name]))
-			$this->deleteCookie();
+			$this->delete('cookie');
+		if(isset($_SESSION[$this->cookie_name]))
+		    $this->delete('session');
+	    session_unset();
+		session_destroy();
 	}
 	
 	public function register($user_email, $user_password, $repeat_password, $captcha, $user_phone = null){
@@ -217,13 +238,13 @@ class DBAuth{
 								$this->mail->Body = $body;
 								
 								if(!$this->mail->send())
-									$error = "Erreur technique ! Insription impossible.<br />Contactez le support ({$this->mail}) en indiquant le code d'erreur suivant : 1. - " . $this->mail->ErrorInfo;
+									$error = "Erreur technique ! <br />Contactez le support ({$this->mail}) en indiquant le code d'erreur suivant : 1. - " . $this->mail->ErrorInfo;
 								else {
 									$this->db->execute('UPDATE ' . PREFIX . 'users SET user_reset = ? WHERE user_email = ?', [$key[0], $user_email]);
 									$error = true;
 								}
 							}else
-								$error = "Erreur technique ! Insription impossible.<br />Contactez le support ({$this->mail}) en indiquant le code d'erreur suivant : 1.";
+								$error = "Erreur technique ! <br />Contactez le support ({$this->mail}) en indiquant le code d'erreur suivant : 1.";
 						}else
 							$error = "CAPTCHA incorrect";
 					}else
@@ -282,6 +303,10 @@ class DBAuth{
 		}
 		
 		if($error === true){
+			ob_start();
+			include(ROOT . "/app/Views/templates/mails/reset_key.php");
+			$body = ob_get_clean();
+								
 			$this->mail->setFrom($this->email, $this->name_site);
 			$this->mail->Subject = $this->name_site . ' - Réinitialisation de votre clé de sécurité';
 			$this->mail->addAddress($user->user_email); 
@@ -296,50 +321,94 @@ class DBAuth{
 	
 	public function logged(){
 		if(!empty($_COOKIE[$this->cookie_name])){
-			$cookie_content = $this->deserializeToken($_COOKIE[$this->cookie_name]);
-		    $cookie = $this->db->prepare('SELECT id FROM ' . PREFIX . 'users_logged WHERE id = ? AND token = ?', [$cookie_content[0], $cookie_content[1]], null, true);
-			if($cookie){
-				$this->createNewCookie($cookie->id);
+			$cookie = $this->deserializeToken($_COOKIE[$this->cookie_name]);
+		    $connected = $this->db->prepare('SELECT id, token FROM ' . PREFIX . 'users_logged WHERE id = ? AND token = ? AND user_agent = ? AND ip = ?', [$cookie[0], $cookie[1], $_SERVER['HTTP_USER_AGENT'], $this->getIP()], null, true);
+			if($connected){
+				$this->createNewCookie($connected->id, $connected->token);
 			    return true;
-			}
-		}else if(!empty($_SESSION[$this->cookie_name]))
-			return true;
+			}else
+				return false;
+		}else if(!empty($_SESSION[$this->cookie_name])){
+			$session_content = $this->deserializeToken($_SESSION[$this->cookie_name]);
+			$session = $this->db->prepare('SELECT id, token FROM ' . PREFIX . 'users_logged WHERE id = ? AND token = ? AND user_agent = ? AND ip = ? AND cookie = 0', [$session_content[0], $session_content[1], $_SERVER['HTTP_USER_AGENT'], $this->getIP()], null, true);
+		    if($session){
+				$this->createNewSession($session->id, $session->token);
+				session_regenerate_id();
+			    return true;
+			}else 
+				return false;
+		}else if(!isset($_POST['user_email']) || !isset($_POST['user_password'])) {
+			$this->logout();
+			return false;
+		}
 	}
 	
 	public function getUserId(){
-		if(!empty($_COOKIE[$this->cookie_name])){
-			$cookie = $this->deserializeToken($_COOKIE[$this->cookie_name]);
-			
-			return $cookie[0];
-		}else
+		if(!empty($_COOKIE[$this->cookie_name]))
+			return $this->deserializeToken($_COOKIE[$this->cookie_name])[0];
+		else if(!empty($_SESSION[$this->cookie_name]))
 			return $this->deserializeToken($_SESSION[$this->cookie_name])[0];
 	}
 	
 	public function setUserId(){
-		if(!empty($_COOKIE[$this->cookie_name])){
-			$cookie = $this->deserializeToken($_COOKIE[$this->cookie_name]);
-			
-			define('user_id', $cookie[0]);
-		}else
-			define('user_id', $this->deserializeToken($_SESSION[$this->cookie_name])[0]);
+		if(isset($_COOKIE[$this->cookie_name]) || isset($_SESSION[$this->cookie_name]))
+			define('user_id', $this->getUserId());
 	}
 	
-	private function createNewCookie($id = null){
-		if($id != null && ctype_digit($id)) {
+	private function createNewCookie($id, $old_token = null){
+		if($id != null && ctype_digit($id)){
+			if($old_token)
+				$this->db->execute('DELETE FROM ' . PREFIX . 'users_logged WHERE id = ? AND token = ? AND user_agent = ? AND ip = ?', [$id, $old_token, $_SERVER['HTTP_USER_AGENT'], $this->getIP()]);
 			$token = $this->encode($this->token);
-			setcookie($this->cookie_name, $this->serializeToken($id, $token), time() + 31536000, '/', DOMAIN, false, true); //expire in one year
-			$this->db->execute('DELETE FROM ' . PREFIX . 'users_logged WHERE id = ?', [$id]);
-			$this->db->execute('INSERT INTO ' . PREFIX . 'users_logged(id, token) VALUES(?, ?)', [$id, $token]);
+			setcookie($this->cookie_name, $this->serializeToken($id, $token), time() + 31536000, '/', DOMAIN, false, true);
+			$this->db->execute('INSERT INTO ' . PREFIX . 'users_logged(id, token, user_agent, ip) VALUES(?, ?, ?, ?)', [$id, $token, $_SERVER['HTTP_USER_AGENT'], $this->getIP()]);
 		}
 	}
 	
-	private function deleteCookie(){
-		$cookie_content = $this->deserializeToken($_COOKIE[$this->cookie_name]);
-		extract($cookie_content);
-		unset($_COOKIE[$this->cookie_name]);
-		setcookie($this->cookie_name, null, -1, '/', DOMAIN);
-		
-		$this->db->execute('DELETE FROM ' . PREFIX . 'users_logged WHERE id = ?', [user_id]);
+	private function createNewSession($id, $old_token = null){
+		if($id != null && ctype_digit($id)){
+		    if($old_token)
+				$this->db->execute('DELETE FROM ' . PREFIX . 'users_logged WHERE id = ? AND token = ? AND user_agent = ? AND ip = ? AND cookie = 0', [$id, $old_token, $_SERVER['HTTP_USER_AGENT'], $this->getIP(), ]);
+			$token = $this->encode($this->token);
+			$_SESSION[$this->cookie_name] = $this->serializeToken($id, $token);
+			$session_time = date("Y-m-d H:i:s", strtotime('+30 minutes', time()));
+			$this->db->execute('INSERT INTO ' . PREFIX . 'users_logged(id, token, user_agent, ip, time, cookie) VALUES(?, ?, ?, ?, ?, 0)', [$id, $token, $_SERVER['HTTP_USER_AGENT'], $this->getIP(), $session_time]);
+		}
+	}
+	
+	public function delete($what, $params = []){
+		switch($what){
+			case 'cookie':
+			    if(isset($params['delete_id']))
+				    if($this->db->execute('DELETE FROM ' . PREFIX . 'users_logged WHERE id = ? AND delete_id = ?', [user_id, $params['delete_id']]))
+						return true;
+				else{
+					if($this->db->execute('DELETE FROM ' . PREFIX . 'users_logged WHERE id = ? AND token = ? AND user_agent = ? AND ip = ?', [user_id,  $this->deserializeToken($_COOKIE[$this->cookie_name])[1], $_SERVER['HTTP_USER_AGENT'], $this->getIP()])){
+						setcookie($this->cookie_name, null, -1, '/', DOMAIN);
+						return true;
+					}
+				}
+				break;
+			case 'session':
+			    if(isset($params['delete_id']))
+					if($this->db->execute('DELETE FROM ' . PREFIX . 'users_logged WHERE id = ? AND delete_id = ? AND cookie = 0', [user_id, $params['delete_id']]))
+						return true;
+				else{
+					if($this->db->execute('DELETE FROM ' . PREFIX . 'users_logged WHERE id = ? AND token = ? AND user_agent = ? AND ip = ? AND cookie = 0', [user_id,  $this->deserializeToken($_SESSION[$this->cookie_name])[1], $_SERVER['HTTP_USER_AGENT'], $this->getIP()])){
+						$_SESSION = array();
+						return true;
+					}
+				}
+				break;
+			case 'sessions':
+			    $hello = true;
+		}
+	}
+	
+	private function deleteSessions(){
+		// $current_date = date("Y-m-d H:i:s", time());
+		// if($this->db->execute('DELETE FROM' . PREFIX . 'users_logged WHERE cookie = 0 AND (time = :time OR time > :time)', ['time' => $current_date]))
+			// return true;
 	}
 	
 	private function serializeToken($id, $token){
@@ -351,7 +420,7 @@ class DBAuth{
 	private function deserializeToken($token){
 		$encoded_cookie = explode(':', $token);
 		
-		$cookie[] = ($encoded_cookie[0] * 4) / 7;
+	    $cookie[] = ($encoded_cookie[0] * 4) / 7;
 		$cookie[] = $encoded_cookie[1];
 		
 		return $cookie;
