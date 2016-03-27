@@ -6,9 +6,10 @@ define('FACEBOOK_SDK_V4_SRC_DIR', __DIR__ . '/Facebook/');
 require_once __DIR__ . '/Facebook/autoload.php';
 require_once __DIR__ . '/Twitter/Codebird.php';
 
-use Core\Config;
 use Facebook\Facebook;
+use Core\Config;
 use Twitter\Codebird;
+use SoundCloud\Services_Soundcloud;
 
 class Social {
 	
@@ -19,6 +20,8 @@ class Social {
 	protected $fb_access_token;
 	
 	protected $tw;
+	
+	protected $sc;
 	
 	public function __construct(){
 		$this->config = Config::getInstance(null);
@@ -42,5 +45,13 @@ class Social {
 	
 	protected function setGPlus(){
 		
+	}
+	
+	protected function setSoundCloud(){
+		$this->sc = new Services_Soundcloud(
+			$this->config->get('sc_client_id'),
+			$this->config->get('sc_client_secret'),
+			$this->config->get('sc_redirect_url')
+		);
 	}
 }

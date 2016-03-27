@@ -1,1 +1,7 @@
-<?phpnamespace Core\Social\Publish;trait TwitterPublish {	}
+<?php
+
+namespace Core\Social\Publish;
+
+trait TwitterPublish {
+	
+}
