@@ -398,10 +398,13 @@ class Auth{
 								$this->mail->Subject = $this->name_site . ' - Rénitialisation de votre mot de passe';
 								$this->mail->Body = $body;
 								
+								$date = date("Y-m-d H:i:s", strtotime('+8 hours', time()));
+								$data = serialize(['date' => $date, 'key' => $key[2]]);
+								
 								if(!$this->mail->send())
 									$error = "Erreur technique ! <br />Contactez le support ({$this->mail}) en indiquant le code d'erreur suivant : 1. - " . $this->mail->ErrorInfo;
 								else {
-									$this->db->execute('UPDATE ' . PREFIX . 'users SET user_reset = ? WHERE user_email = ?', [$key[2], $user_email]);
+									$this->db->execute('UPDATE ' . PREFIX . 'users SET user_reset = ? WHERE user_email = ?', [$data, $user_email]);
 									$error = true;
 								}
 							}else
@@ -523,6 +526,34 @@ class Auth{
 				$error = "Les mots de passe ne correspondent pas.";
 		}else
 			$error = 'Veuillez remplir tous les champs.';
+		
+		return $error;
+	}
+	
+	public function resetPassword($key, $post){
+		$post = (object) $post;
+		if(!empty($post->user_email) && !empty($post->user_password) && !empty($post->user_password_)){
+			$data = $this->db->prepare('SELECT user_reset FROM ' . PREFIX . 'users WHERE user_email = ?', [$post->user_email], null, true);
+			if($data && $data->user_reset != null){
+				$data = (object) unserialize($data->user_reset);
+				if(isset($data->date) && $data->date > date("Y-m-d H:i:s", time())){
+					if(isset($data->key) && $data->key == $key){
+						if($post->user_password == $post->user_password_){
+							$new_password = $this->encrypt($post->user_password);
+							$this->db->execute('UPDATE ' . PREFIX . 'users SET user_reset = NULL, user_password = ? WHERE user_email = ?', [$new_password, $post->user_email]);
+							$error = true;
+						}else
+							$error = 'Les mots de passe ne correspondent pas';
+					}else
+						$error = 'Le lien n\'existe pas';
+				}else {
+					$error = 'Votre lien a expiré';
+					$this->db->execute('UPDATE ' . PREFIX . 'users SET user_reset = NULL WHERE user_email = ?', [$post->user_email]);
+				}
+			}else
+				$error = 'Veuillez vérifier votre email et réessayer';
+		}else
+			$error = 'Veuillez remplir tous les champs';
 		
 		return $error;
 	}
