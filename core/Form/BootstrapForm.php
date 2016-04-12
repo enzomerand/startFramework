@@ -4,9 +4,12 @@ namespace Core\Form;
 
 class BootstrapForm extends Form{
 	
-	protected function surround($html, $label, $input_group = null, $help_text = null){
+	protected function surround($html, $label, $input_group = null, $help_text = null, $surround = false){
 		$html = !empty($input_group) ? '<div class="input-group"><span class="input-group-addon"><i class="fa fa-fw fa-' . $input_group . '"></i></span>' . $html . '</div>' : $html;
-		return "<{$this->surround} class=\"form-group\">{$label}{$html}{$help_text}</{$this->surround}>";
+		if($surround == false)
+			return $label . $html . $help_text;
+		else
+	    	return "<{$this->surround} class=\"form-group\">{$label}{$html}{$help_text}</{$this->surround}>";
 	}
 	
 	public function input($name = null, $label = null, $options = []){
@@ -18,10 +21,11 @@ class BootstrapForm extends Form{
 		$required = !empty($options['required']) ? ' required=""' : null;
 		$help_text = !empty($options['help-text']) ? "<small class=\"text-muted\">{$options['help-text']}</small>" : null;
 		$disabled = !empty($options['disabled']) ? ' disabled' : null;
-		$value = empty($options['value']) ? 'value="' . $this->getValue($name) . '"' : (($options['value'] === false) ? null : 'value="' . $options['value'] . '"');
+		$value = !empty($options['value']) ? ($options['value'] === false ? null : 'value="' . $options['value'] . '"') : 'value="' . $this->getValue($name) . '"';
 		$input_group = !empty($options['input_group']) ? $options['input_group'] : null;
+		$surround = !empty($options['surround']) ? $options['surround'] : false;
 		
-		return $this->surround("<input class=\"form-control\" {$type} {$name_b} {$value} {$placeholder} {$id} {$required} {$disabled} />", $label, $input_group, $help_text);
+		return $this->surround("<input class=\"form-control\" {$type} {$name_b} {$value} {$placeholder} {$id} {$required} {$disabled} />", $label, $input_group, $help_text, $surround);
 	}
 	
 	public function textarea($name = null, $label = null, $options = []){
@@ -29,9 +33,10 @@ class BootstrapForm extends Form{
 		$name_b = !empty($name) ? 'name="' . $name . '"' : null;
 		$placeholder = !empty($options['placeholder']) ? " placeholder=\"{$options['placeholder']}\"" : null;
 		$value = empty($options['value']) ? $this->getValue($name) : (($options['value'] === false) ? null : $options['value']);
-		$rows = !empty($options['rows']) ? 'rows="' . $options['rows'] . '"' : null;
+		$rows = !empty($options['rows']) ? 'rows="' . $options['rows'] . '"' : 'rows="3"';
+		$help_text = !empty($options['help-text']) ? "<small class=\"text-muted\">{$options['help-text']}</small>" : null;
 		
-		return $label . "<textarea class=\"form-control\" {$name_b} {$placeholder} {$rows}>{$value}</textarea>";
+		return $label . "<textarea class=\"form-control\" {$name_b} {$placeholder} {$rows}>{$value}</textarea>{$help_text}";
 	}
 	
 	public function checkbox($name = null, $value = 1, $text = 'Se souvenir de moi', $checked = null){
