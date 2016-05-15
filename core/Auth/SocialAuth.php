@@ -65,17 +65,16 @@ class SocialAuth extends Auth{
 				    $this->createSession($user->social_login_user_id, true);
                     return true;					
 				}
-			}
-		}
-	}
-	
-	public function registerWithSoundCloud(){
-		if($this->setSoundCloudToken() === true && isset($this->getSoundCloudData()->bodyObject()->id)){
-			if($this->db->count('SELECT COUNT(*) FROM ' . PREFIX . 'users_social_login WHERE social_login_user_id = ? AND social_login_type = soundcloud') == 0){
+			}else {
+				//register
 				$date = date("Y-m-d H:i:s", time());
-				if($this->db->execute('INSERT INTO ' . PREFIX . 'users(user_date_create, user_account_activate, user_level) VALUES (?, 1, 2)', [$date]))
-					if($this->db->execute('INSERT INTO ' . PREFIX . 'users_social_login(social_login_user_id, social_login_type, social_login_raw, social_login_token) VALUES(?, soundcloud, ?)', [$this->db->lastInsertId(), serialize($this->getSoundCloudData()->bodyArray()), $this->sc->getAuthToken()]))
+				if($this->db->execute('INSERT INTO ' . PREFIX . 'users(user_date_create, user_account_activate, user_level) VALUES (?, 1, 2)', [$date])){
+					$user_id = $this->db->lastInsertId();
+					if($this->db->execute('INSERT INTO ' . PREFIX . 'users_social_login(social_login_user_id, social_login_app_id, social_login_type, social_login_raw, social_login_token) VALUES(?, ?, \'soundcloud\', ?, ?)', [$this->db->lastInsertId(), $this->getSoundCloudData()->bodyObject()->id, serialize($this->getSoundCloudData()->bodyArray()), $this->sc->getAuthToken()])){
+						$this->createSession($user_id, true);
 						return true;
+					}
+				}
 			}
 		}
 	}
@@ -84,8 +83,9 @@ class SocialAuth extends Auth{
 		if($this->setSoundCloudToken() === true && isset($this->getSoundCloudData()->bodyObject()->id)){
 			if(defined('user_id'))
 				if($this->db->count('SELECT COUNT(*) FROM ' . PREFIX . 'users_social_login WHERE social_login_user_id = ? AND social_login_type = ?', [user_id, 'soundcloud']) == 0)
-					if($this->db->execute('INSERT INTO ' . PREFIX . 'users_social_login(social_login_user_id, social_login_app_id, social_login_type, social_login_raw, social_login_token) VALUES(?, ?, ?, ?, ?)', [user_id, $this->getSoundCloudData()->bodyObject()->id, 'soundcloud', serialize($this->getSoundCloudData()->bodyArray()), $this->sc->getAuthToken()]))
-						return true;
+					if($this->db->count('SELECT COUNT(*) FROM ' . PREFIX . 'users_social_login WHERE social_login_app_id = ? AND social_login_type = ?', [$this->getSoundCloudData()->bodyObject()->id, 'soundcloud']) == 0)
+				        if($this->db->execute('INSERT INTO ' . PREFIX . 'users_social_login(social_login_user_id, social_login_app_id, social_login_type, social_login_raw, social_login_token) VALUES(?, ?, ?, ?, ?)', [user_id, $this->getSoundCloudData()->bodyObject()->id, 'soundcloud', serialize($this->getSoundCloudData()->bodyArray()), $this->sc->getAuthToken()]))
+						    return true;
 		}
 	}
 	
@@ -140,24 +140,13 @@ class SocialAuth extends Auth{
 			}
 		}
 	}
-	
-	public function registerWithSpotify(){
-		if($this->setSpotifyToken() === true && isset($this->getSpotifyData()->id)){
-			if($this->db->count('SELECT COUNT(*) FROM ' . PREFIX . 'users_social_login WHERE social_login_user_id = ? AND social_login_type = ?', []) == 0){
-				$date = date("Y-m-d H:i:s", time());
-				if($this->db->execute('INSERT INTO ' . PREFIX . 'users(user_date_create, user_account_activate, user_level) VALUES (?, 1, 2)', [$date]))
-					if($this->db->execute('INSERT INTO ' . PREFIX . 'users_social_login(social_login_user_id, social_login_type, social_login_raw, social_login_token) VALUES(?, spotify, ?)', [$this->db->lastInsertId(), serialize($this->getSoundCloudData()), $this->sp->getRefreshToken()]))
-						return true;
-			}
-		}
-	}
-	
 	public function associateWithSpotify(){
 		if($this->setSpotifyToken() === true && isset($this->getSpotifyData()->id)){
 			if(defined('user_id'))
 				if($this->db->count('SELECT COUNT(*) FROM ' . PREFIX . 'users_social_login WHERE social_login_user_id = ? AND social_login_type = ?', [user_id, 'spotify']) == 0)
-					if($this->db->execute('INSERT INTO ' . PREFIX . 'users_social_login(social_login_user_id, social_login_app_id, social_login_type, social_login_raw, social_login_token) VALUES(?, ?, ?, ?, ?)', [user_id, $this->getSpotifyData()->id, 'spotify', serialize($this->getSpotifyData()), $this->sp->getRefreshToken()]))
-						return true;
+					if($this->db->count('SELECT COUNT(*) FROM ' . PREFIX . 'users_social_login WHERE social_login_app_id = ? AND social_login_type = ?', [$this->getSpotifyData()->id, 'spotify']) == 0)
+						if($this->db->execute('INSERT INTO ' . PREFIX . 'users_social_login(social_login_user_id, social_login_app_id, social_login_type, social_login_raw, social_login_token) VALUES(?, ?, ?, ?, ?)', [user_id, $this->getSpotifyData()->id, 'spotify', serialize($this->getSpotifyData()), $this->sp->getRefreshToken()]))
+						    return true;
 		}
 	}
 	
@@ -211,23 +200,13 @@ class SocialAuth extends Auth{
 		}
 	}
 	
-	public function registerWithDeezer(){
-		/* if($this->setSoundCloudToken() === true && isset($this->getSoundCloudData()->bodyObject()->id)){
-			if($this->db->count('SELECT COUNT(*) FROM ' . PREFIX . 'users_social_login WHERE social_login_user_id = ? AND social_login_type = soundcloud') == 0){
-				$date = date("Y-m-d H:i:s", time());
-				if($this->db->execute('INSERT INTO ' . PREFIX . 'users(user_date_create, user_account_activate, user_level) VALUES (?, 1, 2)', [$date]))
-					if($this->db->execute('INSERT INTO ' . PREFIX . 'users_social_login(social_login_user_id, social_login_type, social_login_raw, social_login_token) VALUES(?, soundcloud, ?)', [$this->db->lastInsertId(), serialize($this->getSoundCloudData()->bodyArray()), $this->sc->getAuthToken()]))
-						return true;
-			}
-		} */
-	}
-	
 	public function associateWithDeezer(){
 		if($this->setDeezerToken() === true && isset($this->getDeezerData()->id)){
 			if(defined('user_id'))
 				if($this->db->count('SELECT COUNT(*) FROM ' . PREFIX . 'users_social_login WHERE social_login_user_id = ? AND social_login_type = ?', [user_id, 'deezer']) == 0)
-					if($this->db->execute('INSERT INTO ' . PREFIX . 'users_social_login(social_login_user_id, social_login_app_id, social_login_type, social_login_raw, social_login_token) VALUES(?, ?, ?, ?, ?)', [user_id, $this->getDeezerData()->id, 'deezer', serialize($this->getDeezerData()), $this->dz->getToken()]))
-						return true;
+					if($this->db->count('SELECT COUNT(*) FROM ' . PREFIX . 'users_social_login WHERE social_login_app_id = ? AND social_login_type = ?', [$this->getDeezerData()->id, 'deezer']) == 0)
+						if($this->db->execute('INSERT INTO ' . PREFIX . 'users_social_login(social_login_user_id, social_login_app_id, social_login_type, social_login_raw, social_login_token) VALUES(?, ?, ?, ?, ?)', [user_id, $this->getDeezerData()->id, 'deezer', serialize($this->getDeezerData()), $this->dz->getToken()]))
+					    	return true;
 		}
 	}
 	
@@ -236,9 +215,5 @@ class SocialAuth extends Auth{
 			if($this->db->count('SELECT COUNT(*) FROM ' . PREFIX . 'users_social_login WHERE social_login_user_id = ? AND social_login_type = ?', [user_id, 'deezer']) > 0)
 				if($this->db->execute('DELETE FROM ' . PREFIX . 'users_social_login WHERE social_login_type = ? AND social_login_user_id = ?', ['deezer', user_id]))
 					return true;
-	}
-	
-	public function finishRegister(){
-		//créer dossier + mettre email + envoyer mail avec clé
 	}
 }
