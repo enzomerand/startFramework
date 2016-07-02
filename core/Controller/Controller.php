@@ -10,20 +10,21 @@ abstract class Controller{
 	protected $viewPath;
 	protected $template;
 	
-	private function setTemplatePath(){
-	    //si on se trouve dans le repertoire admin
-		if(in_array('admin', explode('/', $this->viewPath)))
-			return  ROOT . '/app/Views/user/';
+	private function setTemplate($end = null){
+		if($end == 'backend' || $end == 'frontend')
+		    return $end;
+	    elseif(in_array('admin', explode('/', $this->viewPath)) || in_array('user', explode('/', $this->viewPath)))
+			return 'backend';
 		else
-			return $this->viewPath;
+			return 'frontend';
 	}
 	
-	protected function render($view, $variables = []){
+	protected function render($view, $variables = [], $end = null){
 		ob_start();
 		extract($variables);
 		require($this->viewPath . $view . '.php');
 		$content = ob_get_clean();
-		require($this->setTemplatePath() . 'templates/' . $this->template . '.php');
+	    require(ROOT . "/app/Views/templates/{$this->template}-{$this->setTemplate($end)}.php");
 	}
 	
 	public function redirect($location = '/', $page = 'index', $get = null){
