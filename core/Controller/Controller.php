@@ -6,29 +6,35 @@ use Core\Auth\DBAuth;
 use App;
 
 abstract class Controller{
-	
+
 	protected $viewPath;
 	protected $template;
-	
-	private function setTemplate($end = null){
-		if($end == 'backend' || $end == 'frontend')
-		    return $end;
-	    elseif(in_array('admin', explode('/', $this->viewPath)) || in_array('user', explode('/', $this->viewPath)))
-			return 'backend';
-		else
-			return 'frontend';
+
+	private function setFace($face = 'backend'){
+		if($face == 'backend' || $face == 'frontend') return $face;
+		else return 'backend';
 	}
-	
-	protected function render($view, $variables = [], $end = null){
+
+	protected function render($view, $variables = [], $face = null){
 		ob_start();
 		extract($variables);
 		require($this->viewPath . $view . '.php');
 		$content = ob_get_clean();
-	    require(ROOT . "/app/Views/templates/{$this->template}-{$this->setTemplate($end)}.php");
+		require(ROOT . "/app/Views/templates/{$this->setFace($face)}/{$this->template}.php");
 	}
-	
-	public function redirect($location = '/', $page = 'index', $get = null){
-		header("Location: {$location}" . (($get != null) ? '?' . (($get == 1) ? 'do' : $get) . '=' . $page : ''));
+
+	public function redirect($location = '/', $params = null){
+		$params = ($params != null) ? '?' . $params : null;
+		header("Location: {$location}{$params}");
+		exit;
 	}
-	
+
+	public function action($class, $params = null){
+		if(method_exists($class)){
+			$restriction_name = strtolower(preg_replace('/\B([A-Z])/', '_$1', $class));
+			$this->isRestricted($class);
+			$this->$class($params);
+		}
+	}
+
 }
