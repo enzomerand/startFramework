@@ -2,7 +2,6 @@
 
 namespace Core\Controller;
 
-use Core\Auth\DBAuth;
 use App;
 
 abstract class Controller{
