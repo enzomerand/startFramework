@@ -1,4 +1,14 @@
 <?php
+/**
+ * Database
+ * Cette classe permet d'initaliser et d'établir une connexion
+ * à une base de donnée MySQL ainsi qu'éxécuter des requêtes.
+ *
+ * @package startFramework\Core\Database
+ * @author  CocktailFuture
+ * @link    https://github.com/Nyzo/startFramework
+ * @version 2.0
+ */
 
 namespace Core\Database;
 
@@ -7,26 +17,27 @@ use \Exception;
 use \PDOException;
 
 class Database{
-	
-	private $db_host;
-	private $db_name;
-	private $db_user;
-	private $db_pass;
-	private $enable_transaction = false;
-	private $pdo;
-	
+
+    /**
+     * @var object  Objet pour effectuer les requêtes
+     * @var boolean État de l'activation globale des transactions
+     */
+	private $pdo, $enable_transaction;
+
+    /**
+     * Stockage des paramètres de connexion à la base de donnée et initialisation
+     *
+     * @param string  $db_host            L'hôte de la connexion à la base de donnée
+     * @param string  $db_name            Le nom de la base de donnée à utiliser
+     * @param string  $db_user            Le nom d'utilisateur de la connexion à la base de donnée
+     * @param string  $db_pass            Le mot de passe de la connexion à la base de donnée
+     * @param boolean $enable_transaction L'activation/désactivation des transactions globales
+     */
 	public function __construct($db_host, $db_name, $db_user, $db_pass, $enable_transaction = false){
-		$this->db_host = $db_host;
-		$this->db_name = $db_name;
-		$this->db_user = $db_user;
-		$this->db_pass = $db_pass;
 		$this->enable_transaction = $enable_transaction;
-	}
-	
-	final private function getPDO(){
 		if($this->pdo === null){
 			try {
-				$pdo = new PDO("mysql:host={$this->db_host};dbname={$this->db_name};charset=utf8", $this->db_user, $this->db_pass);
+				$pdo = new PDO("mysql:host={$db_host};dbname={$db_name};charset=utf8", $db_user, $db_pass);
 				$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 				$pdo->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND, "SET NAMES UTF8");
 				$pdo->setAttribute(PDO::ATTR_ORACLE_NULLS, PDO::NULL_EMPTY_STRING);
@@ -36,107 +47,193 @@ class Database{
 				exit();
 			}
 		}
-		
-		return $this->pdo;
 	}
-	
+
+    /**
+     * Permet d'afficher une erreur formatée
+     *
+     * @param object $e Contient les données de l'erreur
+     */
 	private function getError($e){
 		echo '<b>Request Error</b><br><br>' . $e->getMessage() . '<br>Error ' . $e->getCode();
 		exit();
 	}
-	
+
+    /**
+     * Permet d'obtenir une erreur et annuler correctement une requête
+     *
+     * @param  object  $e           Contient les données de l'erreur
+     * @param  boolean $transaction Indique l'état de l'activation des transactions
+     * @return string               Retourne une erreur formatée
+     */
 	private function getPDOException($e, $transaction){
-		if($transaction === true || $this->enable_transaction === true) $pdo->rollback();
+		if($transaction === true || $this->enable_transaction === true)
+		    $this->rollback();
+
 		$this->getError($e);
 	}
-	
+
+    /**
+     * Permet d'éxécuter une requête sans paramètres dynamiques
+     *
+     * @param  string  $statement   Requête contenant les paramères statiques
+	 * @param  string  $class_name  Instancier les résultats dans une classe de type Entity
+     * @param  boolean $one         Indique si la requête retourne un résultat uniquement
+	 * @param  boolean $transaction État de l'activation des transactions
+     * @return object               Retourne le résultat de la requête
+     */
 	public function query($statement, $class_name = null, $one = false, $transaction = false){
 		try {
-			if($transaction === true || $this->enable_transaction === true) $this->beginTransaction();
-			
-			$query = $this->getPDO()->query($statement);
-			
-			if($transaction === true || $this->enable_transaction === true) $this->commit();
-			
+			if($transaction === true || $this->enable_transaction === true)
+		        $this->beginTransaction();
+
+			$query = $this->pdo->query($statement);
+
+			if($transaction === true || $this->enable_transaction === true)
+			    $this->commit();
+
 			if($class_name === null)
-			$query->setFetchMode(PDO::FETCH_OBJ);
+			    $query->setFetchMode(PDO::FETCH_OBJ);
 			else
-			$query->setFetchMode(PDO::FETCH_CLASS, $class_name);
-			
+			    $query->setFetchMode(PDO::FETCH_CLASS, $class_name);
+
 			$data = ($one) ? $query->fetch() : $query->fetchAll();
-			
+
 			return $data;
-		}catch(PDOException $e){ $this->getPDOException($e, $transaction); }
+		}catch(PDOException $e){
+			$this->getPDOException($e, $transaction);
+		}
 	}
-	
+
+    /**
+     * Permet d'utiliser une requête
+     *
+     * @param  string  $statement   Requête contenant les paramères statiques
+	 * @param  array   $values      Paramètres dynamiques
+	 * @param  string  $class_name  Instancier les résultats dans une classe de type Entity
+     * @param  boolean $one         Indique si la requête retourne un résultat uniquement
+	 * @param  boolean $transaction État de l'activation des transactions
+     * @return object               Retourne le résultat de la requête
+     */
 	public function prepare($statement, $values, $class_name = null, $one = false, $transaction = false){
 		try {
-			if($transaction === true || $this->enable_transaction === true) $this->beginTransaction();
-			
-			$query = $this->getPDO()->prepare($statement);
+			if($transaction === true || $this->enable_transaction === true)
+			    $this->beginTransaction();
+
+			$query = $this->pdo->prepare($statement);
 			$query->execute($values);
-			
-			if($transaction === true || $this->enable_transaction === true) $this->commit();
-			
+
+			if($transaction === true || $this->enable_transaction === true)
+			    $this->commit();
+
 			if($class_name === null)
-			$query->setFetchMode(PDO::FETCH_OBJ);
+			    $query->setFetchMode(PDO::FETCH_OBJ);
 			else
-			$query->setFetchMode(PDO::FETCH_CLASS, $class_name);
-			
+			    $query->setFetchMode(PDO::FETCH_CLASS, $class_name);
+
 			$data = ($one) ? $query->fetch() : $query->fetchAll();
-			
+
 			return $data;
-		}catch(PDOException $e){ $this->getPDOException($e, $transaction); }
+		}catch(PDOException $e){
+			$this->getPDOException($e, $transaction);
+		}
 	}
-	
+
+	/**
+	 * Permet d'éxecuter une requête de type
+	 * INSERT, UPDATE, DELETE avec ou sans paramètres dynamiques
+	 *
+	 * @param  string  $statement   Requête contenant les paramères statiques
+	 * @param  array   $values      Paramètres dynamiques
+	 * @param  boolean $transaction État de l'activation des transactions
+	 * @return boolean              Retourne le succès de la requête
+	 */
 	public function execute($statement, $values = null, $transaction = false){
 		try {
-			if($transaction === true || $this->enable_transaction === true) $this->beginTransaction();
-			
+			if($transaction === true || $this->enable_transaction === true)
+			    $this->beginTransaction();
+
 			if($values == null)
-			$this->getPDO()->exec($statement);
+			    $this->pdo->exec($statement);
 			else {
-				$query = $this->getPDO()->prepare($statement);
+				$query = $this->pdo->prepare($statement);
 				$query->execute($values);
 			}
-			
-			if($transaction === true || $this->enable_transaction === true) $this->commit();
-			
+
+			if($transaction === true || $this->enable_transaction === true)
+			    $this->commit();
+
 			return true;
-		}catch(PDOException $e){ $this->getPDOException($e, $transaction); }
+		}catch(PDOException $e){
+			$this->getPDOException($e, $transaction);
+		}
 	}
-	
+
+    /**
+     * Permet de retourner le nombre d'entrées
+     * d'une table de la base de donnée
+     *
+     * @param  string  $statement   Requête contenant les paramères statiques
+     * @param  array   $values      Paramètres dynamiques
+     * @param  boolean $transaction État de l'activation des transactions
+     * @return int                  Retourne le nombre de lignes
+     */
 	public function count($statement, $values = null, $transaction = false){
 		try {
-			if($transaction === true || $this->enable_transaction === true) $this->beginTransaction();
-			
+			if($transaction === true || $this->enable_transaction === true)
+			    $this->beginTransaction();
+
 			if($values == null)
-			$query = $this->getPDO()->query($statement);
+			    $query = $this->pdo->query($statement);
 			else{
-				$query = $this->getPDO()->prepare($statement);
+				$query = $this->pdo->prepare($statement);
 				$query->execute($values);
 			}
-			
-			if($transaction === true || $this->enable_transaction === true) $this->commit();
-			
+
+			if($transaction === true || $this->enable_transaction === true)
+			    $this->commit();
+
 			return $query->fetchColumn();
-		}catch(PDOException $e){ $this->getPDOException($e, $transaction); }
+		}catch(PDOException $e){
+			$this->getPDOException($e, $transaction);
+		}
 	}
-	
-	public function lastInsertId(){
-		return $this->getPDO()->lastInsertId();
+
+    /**
+     * Permet de récupérer le dernier identifiant d'une ligne insérée
+     * dans la base de donnée issue de la dernière requête
+     *
+     * @return int L'identifiant de la dernière ligne insérée
+     */
+	final public function lastInsertId(){
+		return $this->pdo->lastInsertId();
 	}
-	
-	public function beginTransaction(){
-		return $this->getPDO()->beginTransaction();
+
+	/**
+	 * Fonction utilisée automatiquement lors de l'activation des transactions
+	 *
+	 * @return void
+	 */
+	final private function beginTransaction(){
+		return $this->pdo->beginTransaction();
 	}
-	
-	public function commit(){
-		return $this->getPDO()->commit();
+
+    /**
+     * Fonction utilisée automatiquement lors de l'activation des transactions
+     *
+     * @return void
+     */
+	final private function commit(){
+		return $this->pdo->commit();
 	}
-	
-	public function rollback(){
-		return $this->getPDO()->rollback();
+
+    /**
+     * Fonction utilisée automatiquement lors de l'activation des transactions
+     *
+     * @return void
+     */
+	final private function rollback(){
+		return $this->pdo->rollback();
 	}
-	
+
 }
