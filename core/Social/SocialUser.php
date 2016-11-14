@@ -1,37 +1,22 @@
-<?php
-
-namespace Core\Social;
-
-use Core\Social\SoundCloud\Services_Soundcloud;
-
-class SocialUser extends Social{
-	
-	private $config;
-	private $user_data;
-	
-	protected $fb;
-	
-	protected $tw;
-	
-	protected $sc;
-	
-	protected function setFacebook(){
-		
-	}
-	
-	protected function setTwitter(){
-		
-	}
-	
-	protected function setGPlus(){
-		
-	}
-	
-	protected function setSoundCloud(){
-		$this->sc = new Services_Soundcloud(
-			'945f47c436c29321b09fca87c89c59ff',
-			'4072f13882af3f1c98ce983e553ecc34',
-			'http://mtfo.fr/manage/login.php?do=soundcloud'
-		);
-	}
+<?php
+/**
+ * SocialUser Class
+ */
+
+namespace Core\Social;
+
+/**
+ * Cette classe permet d'initialiser et activer des APIs externes de réseaux
+ * sociaux pour un utilisateur
+ *
+ * @package startFramework\Core\Social
+ * @author  CocktailFuture
+ * @version 2.0
+ * @license CC-BY-NC-SA-4.0 Creative Commons Attribution Non Commercial Share Alike 4.0
+ * @api
+ * @see     Social
+ * @todo    Terminer la classe et rendre les paramètres dynamiques via la bdd
+ */
+class SocialUser extends Social{
+
 }

@@ -80,7 +80,8 @@ class SoundcloudFacade extends Soundcloud
         $defaultParams = array(
             'redirect_uri'  => $this->auth->getAuthUrlCallback(),
             'grant_type'    => 'authorization_code',
-            'code'          => $code
+            'code'          => $code,
+			'scope'         => 'non-expiring'
         );
         
         $mergedParams = array_merge($defaultParams, $params);
@@ -103,6 +104,11 @@ class SoundcloudFacade extends Soundcloud
      * @param array $params 
      * @return \Njasm\Soundcloud\Request\ResponseInterface
      */    
+	 
+	public function getRefreshToken(){
+	    return $this->auth->getRefreshToken();	
+	}
+	
     public function refreshAccessToken($refreshToken = null, array $params = array())
     {
         $defaultParams = array(

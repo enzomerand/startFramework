@@ -1,13 +1,6 @@
 <?php
 /**
- * Database
- * Cette classe permet d'initaliser et d'établir une connexion
- * à une base de donnée MySQL ainsi qu'éxécuter des requêtes.
- *
- * @package startFramework\Core\Database
- * @author  CocktailFuture
- * @link    https://github.com/Nyzo/startFramework
- * @version 2.0
+ * Database Class
  */
 
 namespace Core\Database;
@@ -16,22 +9,40 @@ use \PDO;
 use \Exception;
 use \PDOException;
 
+/**
+ * Cette classe permet d'initaliser et d'établir une connexion
+ * à une base de donnée MySQL ainsi qu'éxécuter des requêtes.
+ *
+ * @package startFramework\Core\Database
+ * @author  CocktailFuture
+ * @version 2.0
+ * @license CC-BY-NC-SA-4.0 Creative Commons Attribution Non Commercial Share Alike 4.0
+ * @api
+ */
 class Database{
 
+	/**
+	 * Objet pour effectuer les requêtes
+	 *
+	 * @var PDO
+  	 */
+    private $pdo;
+
     /**
-     * @var object  Objet pour effectuer les requêtes
-     * @var boolean État de l'activation globale des transactions
+     * État de l'activation globale des transactions
+     *
+     * @var bool
      */
-	private $pdo, $enable_transaction;
+	private $enable_transaction;
 
     /**
      * Stockage des paramètres de connexion à la base de donnée et initialisation
      *
-     * @param string  $db_host            L'hôte de la connexion à la base de donnée
-     * @param string  $db_name            Le nom de la base de donnée à utiliser
-     * @param string  $db_user            Le nom d'utilisateur de la connexion à la base de donnée
-     * @param string  $db_pass            Le mot de passe de la connexion à la base de donnée
-     * @param boolean $enable_transaction L'activation/désactivation des transactions globales
+     * @param string $db_host            L'hôte de la connexion à la base de donnée
+  	 * @param string $db_name            Le nom de la base de donnée à utiliser
+ 	 * @param string $db_user            Le nom d'utilisateur de la connexion à la base de donnée
+ 	 * @param string $db_pass            Le mot de passe de la connexion à la base de donnée
+ 	 * @param bool   $enable_transaction L'activation/désactivation des transactions globales
      */
 	public function __construct($db_host, $db_name, $db_user, $db_pass, $enable_transaction = false){
 		$this->enable_transaction = $enable_transaction;
@@ -49,53 +60,53 @@ class Database{
 		}
 	}
 
-    /**
-     * Permet d'afficher une erreur formatée
-     *
-     * @param object $e Contient les données de l'erreur
-     */
+	/**
+	 * Permet d'afficher une erreur formatée
+	 *
+	 * @param PDOException $e Contient les données de l'erreur
+	 */
 	private function getError($e){
 		echo '<b>Request Error</b><br><br>' . $e->getMessage() . '<br>Error ' . $e->getCode();
 		exit();
 	}
 
-    /**
-     * Permet d'obtenir une erreur et annuler correctement une requête
-     *
-     * @param  object  $e           Contient les données de l'erreur
-     * @param  boolean $transaction Indique l'état de l'activation des transactions
-     * @return string               Retourne une erreur formatée
-     */
+	/**
+	 * Permet d'obtenir une erreur et annuler correctement une requête
+	 *
+	 * @param  PDOException $e           Contient les données de l'erreur
+	 * @param  bool         $transaction Indique l'état de l'activation des transactions
+	 * @return string                    Retourne une erreur formatée
+	 */
 	private function getPDOException($e, $transaction){
 		if($transaction === true || $this->enable_transaction === true)
-		    $this->rollback();
+		$this->rollback();
 
 		$this->getError($e);
 	}
 
-    /**
-     * Permet d'éxécuter une requête sans paramètres dynamiques
-     *
-     * @param  string  $statement   Requête contenant les paramères statiques
-	 * @param  string  $class_name  Instancier les résultats dans une classe de type Entity
-     * @param  boolean $one         Indique si la requête retourne un résultat uniquement
-	 * @param  boolean $transaction État de l'activation des transactions
-     * @return object               Retourne le résultat de la requête
-     */
+	/**
+	 * Permet d'éxécuter une requête sans paramètres dynamiques
+	 *
+	 * @param  string       $statement   Requête contenant les paramères statiques
+	 * @param  string       $class_name  Instancier les résultats dans une classe de type Entity
+	 * @param  bool         $one         Indique si la requête retourne un résultat uniquement
+	 * @param  bool         $transaction État de l'activation des transactions
+	 * @return PDOException              Retourne le résultat de la requête
+	 */
 	public function query($statement, $class_name = null, $one = false, $transaction = false){
 		try {
 			if($transaction === true || $this->enable_transaction === true)
-		        $this->beginTransaction();
+			$this->beginTransaction();
 
 			$query = $this->pdo->query($statement);
 
 			if($transaction === true || $this->enable_transaction === true)
-			    $this->commit();
+			$this->commit();
 
 			if($class_name === null)
-			    $query->setFetchMode(PDO::FETCH_OBJ);
+			$query->setFetchMode(PDO::FETCH_OBJ);
 			else
-			    $query->setFetchMode(PDO::FETCH_CLASS, $class_name);
+			$query->setFetchMode(PDO::FETCH_CLASS, $class_name);
 
 			$data = ($one) ? $query->fetch() : $query->fetchAll();
 
@@ -105,31 +116,31 @@ class Database{
 		}
 	}
 
-    /**
-     * Permet d'utiliser une requête
-     *
-     * @param  string  $statement   Requête contenant les paramères statiques
+	/**
+	 * Permet d'utiliser une requête
+	 *
+	 * @param  string  $statement   Requête contenant les paramères statiques
 	 * @param  array   $values      Paramètres dynamiques
 	 * @param  string  $class_name  Instancier les résultats dans une classe de type Entity
-     * @param  boolean $one         Indique si la requête retourne un résultat uniquement
-	 * @param  boolean $transaction État de l'activation des transactions
-     * @return object               Retourne le résultat de la requête
-     */
+	 * @param  bool    $one         Indique si la requête retourne un résultat uniquement
+	 * @param  bool    $transaction État de l'activation des transactions
+	 * @return object               Retourne le résultat de la requête
+	 */
 	public function prepare($statement, $values, $class_name = null, $one = false, $transaction = false){
 		try {
 			if($transaction === true || $this->enable_transaction === true)
-			    $this->beginTransaction();
+		    	$this->beginTransaction();
 
 			$query = $this->pdo->prepare($statement);
 			$query->execute($values);
 
 			if($transaction === true || $this->enable_transaction === true)
-			    $this->commit();
+		    	$this->commit();
 
 			if($class_name === null)
-			    $query->setFetchMode(PDO::FETCH_OBJ);
+		    	$query->setFetchMode(PDO::FETCH_OBJ);
 			else
-			    $query->setFetchMode(PDO::FETCH_CLASS, $class_name);
+		    	$query->setFetchMode(PDO::FETCH_CLASS, $class_name);
 
 			$data = ($one) ? $query->fetch() : $query->fetchAll();
 
@@ -145,16 +156,16 @@ class Database{
 	 *
 	 * @param  string  $statement   Requête contenant les paramères statiques
 	 * @param  array   $values      Paramètres dynamiques
-	 * @param  boolean $transaction État de l'activation des transactions
-	 * @return boolean              Retourne le succès de la requête
+	 * @param  bool    $transaction État de l'activation des transactions
+	 * @return bool                 Retourne le succès de la requête
 	 */
 	public function execute($statement, $values = null, $transaction = false){
 		try {
 			if($transaction === true || $this->enable_transaction === true)
-			    $this->beginTransaction();
+		    	$this->beginTransaction();
 
 			if($values == null)
-			    $this->pdo->exec($statement);
+		    	$this->pdo->exec($statement);
 			else {
 				$query = $this->pdo->prepare($statement);
 				$query->execute($values);
@@ -169,19 +180,19 @@ class Database{
 		}
 	}
 
-    /**
-     * Permet de retourner le nombre d'entrées
-     * d'une table de la base de donnée
-     *
-     * @param  string  $statement   Requête contenant les paramères statiques
-     * @param  array   $values      Paramètres dynamiques
-     * @param  boolean $transaction État de l'activation des transactions
-     * @return int                  Retourne le nombre de lignes
-     */
+	/**
+	 * Permet de retourner le nombre d'entrées
+	 * d'une table de la base de donnée
+	 *
+	 * @param  string  $statement   Requête contenant les paramères statiques
+	 * @param  array   $values      Paramètres dynamiques
+	 * @param  bool    $transaction État de l'activation des transactions
+	 * @return int                  Retourne le nombre de lignes
+	 */
 	public function count($statement, $values = null, $transaction = false){
 		try {
 			if($transaction === true || $this->enable_transaction === true)
-			    $this->beginTransaction();
+		    	$this->beginTransaction();
 
 			if($values == null)
 			    $query = $this->pdo->query($statement);
@@ -191,7 +202,7 @@ class Database{
 			}
 
 			if($transaction === true || $this->enable_transaction === true)
-			    $this->commit();
+		    	$this->commit();
 
 			return $query->fetchColumn();
 		}catch(PDOException $e){
@@ -199,12 +210,12 @@ class Database{
 		}
 	}
 
-    /**
-     * Permet de récupérer le dernier identifiant d'une ligne insérée
-     * dans la base de donnée issue de la dernière requête
-     *
-     * @return int L'identifiant de la dernière ligne insérée
-     */
+	/**
+	 * Permet de récupérer le dernier identifiant d'une ligne insérée
+	 * dans la base de donnée issue de la dernière requête
+	 *
+	 * @return int L'identifiant de la dernière ligne insérée
+	 */
 	final public function lastInsertId(){
 		return $this->pdo->lastInsertId();
 	}
@@ -218,20 +229,20 @@ class Database{
 		return $this->pdo->beginTransaction();
 	}
 
-    /**
-     * Fonction utilisée automatiquement lors de l'activation des transactions
-     *
-     * @return void
-     */
+	/**
+	 * Fonction utilisée automatiquement lors de l'activation des transactions
+	 *
+	 * @return void
+	 */
 	final private function commit(){
 		return $this->pdo->commit();
 	}
 
-    /**
-     * Fonction utilisée automatiquement lors de l'activation des transactions
-     *
-     * @return void
-     */
+	/**
+	 * Fonction utilisée automatiquement lors de l'activation des transactions
+	 *
+	 * @return void
+	 */
 	final private function rollback(){
 		return $this->pdo->rollback();
 	}

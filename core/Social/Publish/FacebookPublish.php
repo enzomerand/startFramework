@@ -1,7 +1,7 @@
-<?php
-
-namespace Core\Social\Publish;
-
-trait FacebookPublish {
-	
+<?php
+
+namespace Core\Social\Publish;
+
+trait FacebookPublish {
+	
 }
