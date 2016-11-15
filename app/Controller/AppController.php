@@ -1,50 +1,100 @@
 <?php
+/**
+ * AppController Class
+ */
 
 namespace App\Controller;
 
 use Core\Controller\Controller;
 use App;
 use Core\Auth\SocialAuth;
-use Core\Sitemap\Sitemap;
-use Core\Sitemap\SitemapIndex;
+# use Core\Sitemap\Sitemap;
+# use Core\Sitemap\SitemapIndex;
 
+/**
+ * Cette classe permet d'éxécuter des librairies et de définir des paramètres dynamiques
+ *
+ * @package startFramework\App\Controller
+ * @author  CocktailFuture
+ * @version 2.0
+ * @license CC-BY-NC-SA-4.0 Creative Commons Attribution Non Commercial Share Alike 4.0
+ */
 class AppController extends Controller{
-	
-	public $title = 'MTFO Music';
-	public $desc;
+
+	/**
+	 * Contient le nom du site
+	 *
+	 * @deprecated Vous pouvez utiliser directement les paramètres dynamiues
+	 *             via la base de donnée ou définir votre propre variable statique (au sein de cette classe)
+	 * @see Website (classe) Pour utiliser via la base de donnée
+	 * @var string
+	 */
+	public $title = 'Default website name';
+
+	/**
+	 * Permet de définir la page actuelle
+	 *
+	 * @see __construct()
+	 * @var string
+	 */
 	public $page = '/';
-	public $logo_color = 'white';
-	
+
+    /**
+     * Nom de la page (template) à utiliser
+     *
+     * @var string
+     */
 	protected $template = 'default';
+
+	/**
+	 * L'instance de la classe App
+	 *
+	 * @var App
+	 */
 	protected $app;
+
+	/**
+	 * Instance de la classe Auth/SocialAuth
+	 *
+	 * @var SocialAuth
+	 */
 	protected $auth;
+
+	/**
+	 * Indique si l'utilisateur est connecté
+	 *
+	 * @var bool
+	 */
 	protected $logged;
-    protected $modules = [];
-	
+
+    /**
+     * Charge les librairies et définit quelques paramètres statiques ou dynamiques
+     */
 	public function __construct(){
 		$this->viewPath = ROOT . '/app/Views/main/';
 		$this->app = App::getInstance();
+
+        $this->loadElement(['Website', 'Data']);
+		$this->title = $this->Website->sgetTitle('name_site');
+		$this->desc = $this->Website->sgetDesc('desc_site');
+		define('WEBSITE_NAME', $this->title);
+
 		$this->auth = new SocialAuth($this->app->getDb());
 		$this->logged = $this->auth->logged() ? true : false;
 		$this->page = $_SERVER['REQUEST_URI'];
-        
+
         if($this->logged === true)
             $this->auth->setUserId();
-		
-		$this->logo_color = $this->page == '/' ? 'white' : 'black';
-		
-		$this->loadElement(['Website', 'Data']);
-		$this->updateSitemap();
-		
-		$this->Website->setTitle('name_site');
-		$this->title = $this->Website->getTitle();
-		$this->Website->setDesc('desc_site');
-		$this->desc = $this->Website->getDesc();
-		$this->auth->setNameSite(WEBSITE_NAME);
-        
-        $this->loadModules();
 	}
-	
+
+    /**
+     * Permet d'initaliser le chargement des éléments
+     *
+     * @param string|array $element_name Contient le(s) élément(s) à charger
+     * @param bool         $entity       Définit si l'élément doit se créer et s'associer une entité
+     * @param string       $class_name   Suffix de l'élément
+     * @param bool         $use_db       Indique l'utilisation de la base de donnée
+     */
 	final protected function loadElement($element_name, $entity = false, $class_name = 'Element', $use_db = true){
 		if(is_array($element_name)){
 			$array = $element_name;
@@ -53,98 +103,51 @@ class AppController extends Controller{
 	    }else
 		    $this->setElement($element_name, $entity, $class_name, $use_db);
 	}
-    
-    final private function loadModules(){
-        $dir = '../core/Modules/';
-        $dir_files = scandir($dir);
-        foreach($dir_files as $file){
-            if(is_file($dir . $file)){
-                $module_load = 'Core\Modules\\' . str_replace('.php', '', $file);
-                $module = str_replace('.php', '', $file);
-                $this->$module = new $module_load();
-                if(isset($this->$module->module_for_controller) && $this->$module->module_for_controller != null){
-                    $module_for = $module . '_controller';
-                    $this->modules[$module_for] = [];
-					array_push($this->modules[$module_for], $module, $this->$module->module_for_controller);
-                    if(isset($this->$module->module_require_db))
-                        array_push($this->modules[$module_for], $this->$module->module_require_db);
-                    $this->$module = null;
-				}else
-                    if(isset($this->$module->module_require_db) && $this->$module->module_require_db == true){
-                        $this->$module = null;
-                        $this->$module = new $module($this->app->getDb());
-                    }
-            }
-        }
-        
-    }
-    
-    final protected function loadModule($module){
-        $module_name = $module[0];
-        $module_loc = '\Core\Modules\\' . $module_name;
-        if(isset($module[2]) && $module[2] === true)
-            $this->$module_name = new $module_loc($this->app->getDb());
-        else
-            $this->$module_name = new $module_loc();
-    }
-    
-    protected function setModule($class = null){
-        if($class != null){
-            $module = str_replace('Controller', 'Module_controller', str_replace('App\Controller\User\\', '', $class));
-            if(array_key_exists($module, $this->modules))
-                $this->loadModule($this->modules[$module]);
-        }
-    }
-	
+
+    /**
+     * Permet de définir une variable qui contiendra une nstance d'un élément à charger
+     *
+     * @see   App->getElement()
+     * @param string $element_name Nom de l'élément
+     * @param bool   $entity       Définit si l'élément doit se créer et s'associer une entité
+     * @param string $class_name   Suffix de l'élément
+     * @param bool   $use_db       Indique l'utilisation de la base de donnée
+     */
 	private function setElement($element_name, $entity = false, $class_name = 'Element', $use_db = true){
 		$this->$element_name = $this->app->getElement($element_name, $entity, $class_name, $use_db);
 	}
-	
-	public function set404(){
-		header('Location: /404/');
+
+    /**
+     * Permet de rediriger vers la page 404
+     *
+     * @param  string $page_name
+     */
+	public function set404($page_name = '404'){
+		header("Location: /$page_name/");
 		exit;
 	}
-	
-	public function get404(){
-		$this->render('404', compact(''));
+
+    /**
+     * Permet d'afficher la page 404
+     *
+     * @param  string $template
+     * @return void
+     */
+	public function get404($template = '404'){
+		$this->render($template, compact(''));
 	}
-	
+
+    /**
+     * Permet de retourner une simple alerte formatée
+     *
+     * @example Cette fonction est à titre d'example
+     * @param  string $text Texte à afficher dans l'alerte
+     * @param  string $type Extension de classe (CSS)
+     * @return string
+     */
 	protected function getAlert($text, $type = null){
 		$type = ($type != null) ? ' alert-' . $type : null;
 		return '<div class="alert' . $type . '">' . $text . '</div>';
 	}
-	
-	final private function updateSitemap(){
-		$artistsSitemap = new Sitemap(CURRENT_PATH . '/sitemap-artists.xml');
-		$artists = $this->Data->getArtists(true, false)["data"];
-		foreach($artists as $artist)
-		$artistsSitemap->addItem(FULL_DOMAIN . "artists/{$artist->permalink}", $artist->_date, Sitemap::MONTHLY, 0.6);
-		$artistsSitemap->write();
-		$artistsSitemapUrls = $artistsSitemap->getSitemapUrls(FULL_DOMAIN);
-		
-		$artistsLabelSitemap = new Sitemap(CURRENT_PATH . '/sitemap-artists-label.xml');
-		$artists = $this->Data->getArtists(true, false, 'ARTIST.label = 1')["data"];
-		foreach($artists as $artist)
-		$artistsLabelSitemap->addItem(FULL_DOMAIN . "artists/{$artist->permalink}", $artist->_date, Sitemap::MONTHLY, 0.6);
-		$artistsLabelSitemap->write();
-		$artistsLabelSitemapUrls = $artistsLabelSitemap->getSitemapUrls(FULL_DOMAIN);
-		
-		$pagesSitemap = new Sitemap(CURRENT_PATH . '/sitemap-home.xml');
-		foreach($this->Website->getPages('sidebar_footer')["data"] as $page)
-		$pagesSitemap->addItem(FULL_DOMAIN . $page->page_slug . '/');
-		foreach($this->Website->getPages('sidebar_site')["data"] as $page)
-		$pagesSitemap->addItem(FULL_DOMAIN . $page->page_slug . '/');
-        $pagesSitemap->write();
-		$pagesSitemapUrls = $pagesSitemap->getSitemapUrls(FULL_DOMAIN);
-		
-		$indexSitemap = new SitemapIndex(CURRENT_PATH . '/sitemap.xml');
-		foreach ($pagesSitemapUrls as $url)
-			$indexSitemap->addSitemap($url);
-		foreach ($artistsSitemapUrls as $url)
-			$indexSitemap->addSitemap($url);
-		foreach ($artistsLabelSitemapUrls as $url)
-			$indexSitemap->addSitemap($url);
-		$indexSitemap->write();
-	}
-	
+
 }

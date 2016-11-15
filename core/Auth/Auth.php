@@ -14,7 +14,6 @@ use \DateTime;
 use ReCaptcha\ReCaptcha;
 
 /**
- * Auth
  * Cette classe permet de créer un système de connexion et d'inscription.
  *
  * @package startFramework\Core\Auth
@@ -81,7 +80,14 @@ class Auth{
     private $subdomains = ['', 'manage.', 'label.'];
 
     /**
-     * Permet d'effectuer des requêtes sur la bdd
+     * Nom du site web où de l'entreprise, etc
+     *
+     * @var string
+     */
+    private $org_name;
+
+    /**
+     * Permet d'effectuer des requêtes SQL sur la base de donnée
      *
      * @var Database
      */
@@ -104,7 +110,7 @@ class Auth{
     /**
      * Initialisation des plugins et définition des paramètres
      *
-     * @param Database $db Permet d'effectuer des requêtes sur la bdd
+     * @param Database $db API Database
      */
 	public function __construct(Database $db){
 		$this->db = $db;
@@ -115,7 +121,7 @@ class Auth{
         $this->generator = $factory->getMediumStrengthGenerator();
         $this->password  = new Password();
 
-        $this->reCaptcha = new ReCaptcha(CAPTCHA_PRIVATE);
+        $this->reCaptcha = new ReCaptcha($this->config->get('captcha_private')); // Ou $this->db->query('query to exec')->value ou via la classe WebsiteElement
         $this->browser   = new FindBrowser();
 
 		$this->deleteSession('sessions');
@@ -125,8 +131,10 @@ class Auth{
 		$this->mail->CharSet = 'utf-8';
 		$this->mail->isHTML(true);
 
-		if(defined(SUBDOMAIN)) $this->email = 'no-reply@' . SUBDOMAIN;
-		else $this->email = 'no-reply@' . $_SERVER['HTTP_HOST'];
+		if(defined(SUBDOMAIN))
+            $this->email = 'no-reply@' . SUBDOMAIN;
+		else
+            $this->email = 'no-reply@' . DOMAIN;
 	}
 
     /**

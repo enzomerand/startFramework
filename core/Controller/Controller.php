@@ -8,7 +8,6 @@ namespace Core\Controller;
 use App;
 
 /**
- * Controller
  * Cette classe permet d'afficher une page et d'être héritée pour effectuer
  * des actions
  *
@@ -20,15 +19,24 @@ use App;
 abstract class Controller{
 
     /**
-     * @var string Définit quel dossier utiliser
-     * @var string Contient le template à utiliser
+     * Définit quel dossier utiliser
+     *
+     * @var string
+     *
      */
-	protected $viewPath, $template;
+    protected $viewPath;
+
+    /**
+     * Contient le template à utiliser
+     *
+     * @var string
+     */
+	protected $template;
 
     /**
      * Définit la vue utilisée (backend ou frontend)
      *
-     * @see   func   render()
+     * @see   render()
      * @param string $face
      */
 	private function setFace($face = 'backend'){
@@ -70,7 +78,7 @@ abstract class Controller{
 	 * Permet d'éxécuter une méthode en vérifiant si l'utilisateur
 	 * à les droits au sein du Controller (étendue à cette classe)
 	 *
-	 * @see    func       isRestrited()
+	 * @see    isRestricted()
 	 * @param  string     $function      Nom de la fonction à utiliser
 	 * @param  array|null $params        Paramètres optionnels pour la fonction
 	 */
