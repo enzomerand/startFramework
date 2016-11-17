@@ -16,16 +16,17 @@ namespace Core\Router;
  */
 class Route {
 
-    /**
-     * @var
-     * @var
-     * @var array
-     * @var array
-     */
-    private $path,
-            $callable,
-            $matches = [],
-            $params = [];
+    
+    private $path;
+
+
+    private $callable;
+
+
+    private $matches = [];
+
+
+    private $params = [];
 
     /**
      * Initialisation de la classe

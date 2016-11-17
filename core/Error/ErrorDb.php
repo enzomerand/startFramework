@@ -10,6 +10,10 @@ use Core\Database\Database;
 /**
  * Cette classe permet de gérer et formater les erreurs via une base de donnée
  *
+ * Contraireent à la gestion des erreurs via des fichiers locaux, la table des
+ * erreurs n'est pas catégorisée via les requêtes, c'est à vous en backend de
+ * trier les erreurs en ajoutant un champ
+ *
  * @package startFramework\Core\Error
  * @author  CocktailFuture
  * @version 2.0
@@ -18,7 +22,7 @@ use Core\Database\Database;
 class ErrorDb implements ErrorInterface {
 
     /**
-     * Dernier aractère de la chaîne de caractère de l'erreur
+     * Dernier caractère de la chaîne de caractère de l'erreur
      *
      * @var string|null
      */
@@ -108,7 +112,7 @@ class ErrorDb implements ErrorInterface {
             $this->editFile($code, $string);
     }
 
-    private function editData($code, $error){
+    public function editData($code, $error){
         if(ctype_digit($code) || is_int($code)){
             $error = $this->db->execute("UPDATE $this->table SET $this->column_text = ? WHERE $this->column_id = ?", [$error, $code]);
         }

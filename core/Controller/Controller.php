@@ -67,8 +67,10 @@ abstract class Controller{
      */
 	public function redirect($location = '/', $params = null){
 		$get = null;
-		foreach ($params as $key => $value)
-			$get .= '&' . $key . '=' . $value;
+        if($params != null){
+            foreach ($params as $key => $value)
+    			$get .= '&' . $key . '=' . $value;
+        }
 		$get = ($get != null) ? '?' . ltrim($get, '&') : null;
 		header("Location: {$location}{$get}");
 		exit;

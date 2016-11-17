@@ -23,14 +23,59 @@ class Error implements ErrorInterface {
     private $end = '.';
 
     /**
-     * Fichier où sont répertoriés les erreurs
+     * Fichier où sont répertoriés les erreurs, indiquer le fichier par défaut
+     * Si vous changez le nom du dossier contenant les erreurs, changez également le nom à la ligne 72:141
      *
      * @var string
      */
-    private $error_file = ROOT . "/app/errors.txt";
+    private $error_file = ROOT . "/app/errors/errors.txt";
+
+    /**
+     * Permet de récupérer une erreur
+     *
+     * @example <code>
+     *              // Error contient l'instance de la classe Error pour l'exemple
+     *              // $this->Error->get$wantError();
+     *              $this->Error->getAuthError(); -> Le fichier chargé sera 'errors-auth.txt'
+     *          </code>
+     *          Si on souhaite un retour d'erreur par défaut, on appelle directement la fonction getError()
+     *          Pour afficher directement une erreur, on utilise la fonction echoError().
+     *
+     * @param  void  $method
+     * @param  array $params
+     * @return void
+     */
+    public function __call($method, $params){
+        $this->error_file = str_replace('.txt', '-' . str_replace('echo', '', str_replace('error', '', str_replace('get', '', strtolower($method)))) . '.txt', $this->error_file);
+        switch($params){
+            case isset($params[2]):
+                if (!strncasecmp($method, 'echo', 4))
+                    $this->echoError($params[0], $params[1], $params[2]);
+                else
+                    return $this->getError($params[0], $params[1], $params[2]);
+                break;
+            case isset($params[1]):
+                if (!strncasecmp($method, 'echo', 4)) //timed out ?
+                    $this->echoError($params[0], $params[1]);
+                else
+                    return $this->getError($params[0], $params[1]);
+                break;
+            case isset($params[0]):
+                if (!strncasecmp($method, 'echo', 4))
+                    $this->echoError($params[0]);
+                else
+                    return $this->getError($params[0]);
+                break;
+        }
+    }
 
     public function getError($code, $vars = [], $end = 'default'){
-        if($end == 'defaut')
+        if(!file_exists($this->error_file)){
+            $file_name = isset(explode('-', $this->error_file)[1]) ? str_replace('.txt', '', explode('-', $this->error_file)[1]) : explode('errors/', strstr($this->error_file, '.txt', true))[1];
+            return "Erreur ! Le fichier d'erreur \"$file_name\" est introuvable.";
+        }
+
+        if($end == 'default')
             $end = $this->end;
 
         if(ctype_digit($code) || is_int($code)){
@@ -46,7 +91,7 @@ class Error implements ErrorInterface {
             if(isset($vars[0]))
                 $error = vsprintf($error, $vars);
 
-	        return trim($error) . $end;
+	        return trim($error) . ' ' . $end;
 		}
     }
 
@@ -76,7 +121,7 @@ class Error implements ErrorInterface {
             $this->editFile($code, $string);
     }
 
-    private function editData($code, $error){
+    public function editData($code, $error){
         if(ctype_digit($code) || is_int($code)){
             $file = fopen($this->error_file, 'r+');
             $i = 0;
